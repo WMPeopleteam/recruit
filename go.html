@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <title>우미건설 채용 안내</title>
+  <!-- woomic-short-link: 문자에 넣는 짧은 주소(go?<종류><토큰>)를 원래 응답 페이지로 이동시킨다. 서버가 이 표시로 배포 여부를 확인한다. -->
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#edf5fa;color:#17202a;font-family:Pretendard,"Noto Sans KR",Arial,sans-serif}.page{width:min(640px,100%);margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 28px rgba(29,63,92,.1)}.header{padding:18px 28px 16px;border-top:4px solid #003087;background:#f4f8fc}.brand img{display:block;width:104px;height:39px;border:0}.state{padding:44px 28px;text-align:center;line-height:1.7}.state h1{margin:0 0 10px;color:#003087;font-size:20px}.error h1{color:#b42318}.state a{color:#003087;font-weight:700}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header"><div class="brand"><img src="woomi-ci.png" width="104" height="39" alt="우미건설"></div></header>
+    <section id="state" class="state" role="status" aria-live="polite">
+      <h1 id="state-title">안내 페이지로 이동합니다</h1>
+      <p id="state-text">잠시만 기다려 주세요.</p>
+      <p><a id="state-link" href="#" hidden>이동하지 않으면 여기를 눌러 주세요</a></p>
+    </section>
+  </main>
+  <script>
+    (function () {
+      // 종류 문자 → 같은 폴더의 응답 페이지 (서버 shortenSmsLink_의 SMS_SHORT_LINK_PAGES와 같아야 한다)
+      var pages = { a: 'interview_availability.html', c: 'reference_candidate_intake.html', r: 'reference_check_intake.html' };
+      function fail() {
+        var state = document.getElementById('state');
+        state.className = 'state error';
+        state.setAttribute('role', 'alert');
+        document.getElementById('state-title').textContent = '링크를 열 수 없습니다';
+        document.getElementById('state-text').textContent = '문자에 있는 주소가 잘렸거나 올바르지 않습니다. 받으신 이메일의 버튼으로 접속해 주세요.';
+      }
+      function base64UrlToHex(text) {
+        var b64 = text.replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4) b64 += '=';
+        var bin = atob(b64);
+        var hex = '';
+        for (var i = 0; i < bin.length; i++) hex += ('0' + bin.charCodeAt(i).toString(16)).slice(-2);
+        return hex;
+      }
+      function uuid(hex) {
+        return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20, 32);
+      }
+      try {
+        var query = decodeURIComponent(location.search.slice(1));
+        var page = pages[query.charAt(0)];
+        var code = query.slice(1);
+        if (!page || !/^[A-Za-z0-9_-]{22,43}$/.test(code)) return fail();
+        var hex = base64UrlToHex(code);
+        var token = hex.length === 32 ? uuid(hex) : hex.length === 64 ? uuid(hex.slice(0, 32)) + hex.slice(32) : '';
+        if (!token) return fail();
+        var target = page + '?token=' + encodeURIComponent(token);
+        var link = document.getElementById('state-link');
+        link.href = target;
+        link.hidden = false;
+        location.replace(target);
+      } catch (err) {
+        fail();
+      }
+    })();
+  </script>
+</body>
+</html>
