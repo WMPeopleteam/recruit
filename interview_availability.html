@@ -13,6 +13,7 @@
     /* 일부 브라우저는 :focus-visible 테두리를 따로 그려서, 페이지를 열 때 폼 전체에 검은 테두리가 보였다 */
     [tabindex="-1"]:focus,[tabindex="-1"]:focus-visible,form:focus,form:focus-visible{outline:none;box-shadow:none}
     .panel-options{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.panel-day{border-bottom:1px solid #dce6ef;padding-bottom:12px}.panel-day h3{font-size:14px;margin:0 0 8px}.panel-period{margin-top:8px}.panel-period h4{font-size:12px;color:#607080;margin:0 0 6px}.panel-times{display:grid;grid-template-columns:repeat(auto-fit,minmax(68px,1fr));gap:6px}.panel-times .cal-slot span{padding:7px 0}
+    .panel-times.with-peers{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}.peer-tag{display:block;margin-top:2px;font-size:10px;font-weight:600;line-height:1.3;opacity:.85;word-break:keep-all}.peer-summary{margin:0 0 10px;padding:9px 12px;border:1px solid #f1d9a8;border-radius:8px;background:#fff8eb;font-size:12px;line-height:1.6;color:#6b4a00}
   </style>
 </head>
 <body>
@@ -32,6 +33,7 @@
         <fieldset class="availability-fieldset">
           <legend>가능한 일정을 모두 선택해 주세요</legend>
           <p id="cal-range" class="cal-range"></p>
+          <div id="peer-summary" class="peer-summary hidden"></div>
           <div id="options" class="cal" tabindex="-1"></div>
         </fieldset>
         <div class="unavailable">
@@ -73,6 +75,7 @@
     const proxyConfirmWrap = document.getElementById('proxy-confirm-wrap');
     const proxyConfirm = document.getElementById('proxy-confirm');
     let responseBy = 'candidate';
+    let panelPeers = [];
 
     function showError(message) {
       loading.classList.add('hidden'); form.classList.add('hidden'); complete.classList.add('hidden');
@@ -129,15 +132,25 @@
       }
       grid.innerHTML = heads + cells.join('');
     }
-    function renderPanelTimes(options, selected) {
+    // 이미 회신한 다른 면접관이 고른 시각에 'OOO 선택'을 붙인다(이름만, 이메일은 받지 않는다).
+    // 예전 회신(날짜|오전·오후)은 그 시간대의 모든 시각을 고른 것으로 본다.
+    function peerNamesFor(peers, date, time) {
+      const period = time < '12:00' ? 'AM' : 'PM';
+      return (peers || []).filter(peer => peer.status === 'RESPONDED' && (peer.selections || []).some(value => value === `${date}|${time}` || value === `${date}|${period}`)).map(peer => peer.name || '면접관');
+    }
+    function renderPanelTimes(options, selected, peers) {
       const grid = document.getElementById('options');
       grid.classList.add('panel-options');
+      const hasPeers = (peers || []).some(peer => peer.status === 'RESPONDED');
       document.getElementById('cal-range').textContent = ['AM','PM'].filter(period => options.some(option => (option.periods || []).includes(period))).map(period => period === 'AM' ? '오전 09:00~12:00' : '오후 13:00~18:00').join(' · ');
       grid.innerHTML = options.map(option => `<section class="panel-day"><h3>${dateLabel(option.date)}</h3>${['AM','PM'].filter(period => (option.periods || []).includes(period)).map(period => {
         const times = (option.times || []).filter(time => (time < '12:00' ? 'AM' : 'PM') === period);
-        return `<div class="panel-period"><h4>${period === 'AM' ? '오전' : '오후'}</h4><div class="panel-times">${times.map(time => {
+        return `<div class="panel-period"><h4>${period === 'AM' ? '오전' : '오후'}</h4><div class="panel-times${hasPeers ? ' with-peers' : ''}">${times.map(time => {
           const value = `${option.date}|${time}`;
-          return `<label class="cal-slot"><input type="checkbox" name="availability" value="${escHtml(value)}" aria-label="${dateLabel(option.date)} ${time}" ${selected.has(value) || selected.has(`${option.date}|${period}`) ? 'checked' : ''}><span>${time}</span></label>`;
+          const names = peerNamesFor(peers, option.date, time);
+          const tag = names.length ? `<small class="peer-tag">${escHtml(names.join('·'))} 선택</small>` : '';
+          const peerLabel = names.length ? ` (${names.join(', ')} 선택)` : '';
+          return `<label class="cal-slot"><input type="checkbox" name="availability" value="${escHtml(value)}" aria-label="${escHtml(`${dateLabel(option.date)} ${time}${peerLabel}`)}" ${selected.has(value) || selected.has(`${option.date}|${period}`) ? 'checked' : ''}><span>${time}${tag}</span></label>`;
         }).join('')}</div></div>`;
       }).join('')}</section>`).join('');
     }
@@ -164,7 +177,23 @@
         document.getElementById('interview-type').textContent = data.interviewType ? `${data.interviewType} 면접` : '면접';
         if(isPanel) {
           document.getElementById('page-title').textContent = '면접위원 가능 일정 확인';
-          document.getElementById('intro').lastChild.textContent = ' 참석 가능한 날짜와 시간대를 모두 선택해 주세요.';
+          // 먼저 확인한 면접관이 고른 시간만 받은 경우 그분 이름으로 안내한다.
+          const intro = document.getElementById('intro');
+          if(data.panelRole === 'MEMBER' && data.leadName) {
+            intro.innerHTML = `<b>${escHtml(data.positionText || '')}</b> ${escHtml(data.interviewType ? `${data.interviewType} 면접` : '면접')} 일정을 조율하고 있습니다. <b>${escHtml(data.leadName)}</b>님이 가능하다고 선택한 시간 중 참석 가능한 시간을 모두 선택해 주세요.`;
+          } else if(data.panelRole === 'LEAD') {
+            intro.lastChild.textContent = ' 참석 가능한 날짜와 시간대를 모두 선택해 주세요. 선택해 주신 시간을 기준으로 다른 면접관께 일정을 확인드립니다.';
+          } else {
+            intro.lastChild.textContent = ' 참석 가능한 날짜와 시간대를 모두 선택해 주세요.';
+          }
+          // 이미 회신한 다른 면접관(먼저 확인한 면접관은 안내 문장에 이름이 있으므로 제외).
+          const others = (data.peers || []).filter(peer => !(data.panelRole === 'MEMBER' && peer.role === 'LEAD'));
+          panelPeers = others;
+          const peerSummary = document.getElementById('peer-summary');
+          if(others.length) {
+            peerSummary.innerHTML = `<b>먼저 회신한 면접관</b><br>${others.map(peer => `${escHtml(peer.name || '면접관')} · ${peer.status === 'UNAVAILABLE' ? '제시 일정 모두 어려움' : `${(peer.selections || []).length}개 시간 선택`}`).join('<br>')}<br>시간 아래에 다른 면접관이 고른 시간이 표시됩니다.`;
+            peerSummary.classList.remove('hidden');
+          }
           const locationLine = data.location ? `<br>면접 장소: <b>${escHtml(data.location)}</b>` : '';
           document.getElementById('guide').innerHTML = `<b>안내</b><br>응답 취합 후 피플팀에서 확정된 면접시간과 순서를 별도로 안내드립니다.${locationLine}`;
           document.getElementById('complete-message').textContent = '응답 취합 후 확정된 면접시간을 별도 메일로 안내드리겠습니다.';
@@ -179,7 +208,7 @@
           document.getElementById('complete-message').textContent = '헤드헌터 대리 회신으로 저장되었습니다. 면접시간이 확정되면 별도 메일로 안내드리겠습니다.';
         }
         const selected = new Set(data.selections || []);
-        if(isPanel) renderPanelTimes(data.options || [], selected);
+        if(isPanel) renderPanelTimes(data.options || [], selected, panelPeers);
         else renderCalendar(data.options || [], selected);
         unavailable.checked = !!data.unavailable;
         note.value = data.note || '';
