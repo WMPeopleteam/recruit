@@ -78,7 +78,7 @@
     const proxyConfirm = document.getElementById('proxy-confirm');
     let responseBy = 'candidate';
     let panelPeers = [];
-    // 면접관장 확정 화면: 고른 시각(날짜|HH, 1시간 단위). 제출할 때 30분 칸 두 개로 바꿔 보낸다.
+    // 최종 확인 면접관 확정 화면: 고른 시각(날짜|HH, 1시간 단위). 제출할 때 30분 칸 두 개로 바꿔 보낸다.
     let leadMode = false;
     const leadSelected = new Set();
     const LEAD_HOURS = { AM:['09','10','11'], PM:['13','14','15','16','17'] };
@@ -181,7 +181,7 @@
         }).join('')}</div></div>`;
       }).join('')}</section>`).join('');
     }
-    // 면접관장 확정 화면. 날짜·시간대마다 면접관 회신(가능·어려움)을 보여 주고 1시간 단위 시각을 고른다.
+    // 최종 확인 면접관 확정 화면. 날짜·시간대마다 면접관 회신(가능·어려움)을 보여 주고 1시간 단위 시각을 고른다.
     // 시작 시각을 누르면 그 시간대 끝까지 선택되고, 선택된 시각을 다시 누르면 그 시각부터 끝까지 해제된다(끝 시각 정하기).
     function renderLeadHours(options, peers) {
       const grid = document.getElementById('options');
