@@ -147,7 +147,8 @@
     <div id="errorPanel" role="alert" aria-live="assertive" aria-atomic="true" tabindex="-1">
       <div class="q-card">
         <h2 id="errorTitle">링크를 확인할 수 없습니다</h2>
-        <p id="errorMessage">링크가 만료되었거나 올바르지 않습니다. 담당 채용 담당자에게 문의해 주세요.</p>
+        <p id="errorMessage">링크가 만료되었거나 올바르지 않습니다. 카카오톡 채널로 문의해 주세요.</p>
+        <p><a href="https://pf.kakao.com/_sZjin/chat" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border:1px solid #dde7f1;border-radius:999px;color:#003087;font-weight:700;text-decoration:none;font-size:13px">카카오톡 채널 문의하기 →</a></p>
       </div>
     </div>
 
@@ -340,14 +341,14 @@
           } else if (data.error === 'token_expired') {
             showError('링크가 만료되었습니다', '채용 담당자에게 새 링크 발송을 요청해 주세요.');
           } else {
-            showError('링크를 확인할 수 없습니다', '링크가 올바르지 않습니다. 채용 담당자에게 문의해 주세요.');
+            showError('링크를 확인할 수 없습니다', '링크가 올바르지 않습니다. 카카오톡 채널로 문의해 주세요.');
           }
           return;
         }
         document.querySelectorAll('.cand-name').forEach(el => { el.textContent = data.candName || 'OOO'; });
         document.title = `${data.candName || 'OOO'} 님 추천인 등록 · 우미건설`;
         if (data.alreadySubmitted) {
-          showError('이미 등록을 완료하셨습니다', '추천인 등록은 1회만 가능합니다. 변경이 필요하면 채용 담당자에게 문의해 주세요.');
+          showError('이미 등록을 완료하셨습니다', '추천인 등록은 1회만 가능합니다. 변경이 필요하면 카카오톡 채널로 문의해 주세요.');
           return;
         }
         renderRefereeCards();

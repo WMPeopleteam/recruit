@@ -38,7 +38,7 @@
           <label for="note" class="sr-only">희망 입사일과 사유</label>
           <textarea id="note" class="note" maxlength="500" placeholder="희망 입사일과 사유를 적어 주세요. (예: 11월 3일 이후 가능 — 현 직장 인수인계)"></textarea>
         </div>
-        <div class="notice">회신 기한 전까지는 다시 제출해 날짜를 바꿀 수 있습니다. 이후 변경이 필요하면 피플팀에 알려 주세요.</div>
+        <div class="notice">회신 기한 전까지는 다시 제출해 날짜를 바꿀 수 있습니다. 이후 변경이 필요하면 카카오톡 채널로 문의해 주세요.</div>
         <div id="form-message" class="form-message" role="alert" aria-live="assertive" aria-atomic="true"></div>
         <div class="actions"><button id="submit" class="submit" type="submit">입사 가능일 제출</button></div>
       </form>
@@ -47,11 +47,11 @@
         <p id="complete-message" class="done-msg">입사일이 확정되면 입사 준비사항과 함께 입사 안내 메일을 보내드리겠습니다.</p>
         <div id="complete-summary" class="done-summary"></div>
         <div class="done-actions"><button id="edit-response" class="edit-btn" type="button">선택 내용 수정하기</button></div>
-        <div id="kakao-contact" class="kakao">
+      </div>
+        <div id="kakao-contact" class="kakao" style="margin-top:20px">
           <div class="kakao-text"><strong>문의사항</strong>입사 일정이나 궁금한 점이 있으시면 카카오톡 채널로 문의해 주세요.<br><a class="kakao-link" href="https://pf.kakao.com/_sZjin/chat" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkBAMAAAATLoWrAAAAMFBMVEX////+/v78/P37+/vj5OWsrrBjZms8QEYgJSweIyodIikbICcaICcZHiUSFx4NEhmC9WpdAAACGklEQVR42m2STUgUYQCGn++bTXdC3W8UDMJsdqMiSJLoj0qlxIN16FJKEARGF+sYRJcCL0JBERWdvESUQggKrUFJaREFUrKUCdXuuOomWzozu1ttws50GKNDvcfn8B7e5xUAptUW27h/MPlAegSplh2Dix9Hk9nTZhTQQPzsGCi8/eUn0+czD1URDcxN/Xd1HfTwxMlvr300ZL4rvzZo0F9eeIGjEWm69XWlFCNeOYIQsRMVjX8QpZZ9SU0W4ssAdlEHZJwFYTY3meClWyMTM1Hwtq6Tmgl4ZV0Dl8u6LEA2ilX55zC75+LSTGzD9WHFu7GQIcE/3v4MPj8tPwxmQrT3OBSG7pg2hjefmURMa3vLlXews94qd+xcQ6JKeS1SKQpXTct3wEs/OoIQIQXpT1XaAUZ9XFkFQkYUyiXYySeHcEPNDoD/BAClYE4CRBwMAxCuB8hxqDs3i20D9dvTUCddB6+moRGgJrV7DD+ibVsfFm9KcYgZmV33XajVNq9RVHR/+LI6Y+88lFL4taK9x4FEZ73XZmzpToCYFrVzY5Cb6vvxKpodV1AYDtkeIJy5MxOPqxVg2VrU9RXZhcq+rBEGvNbbsmQB4nvvjRUh3qSWm+pPQ36HHpD39+xAmh+dVH+l4XMtLayAMDU0WNRYtkSFHg5I6tQVHIlXN9KWCsjS0bPjFhq481bv4oKOvXzs0s1I8X+XE/8e8zdrcN6IInSkHwAAAABJRU5ErkJggg==" alt="" width="18" height="18">카카오톡 문의하기 →</a></div>
           <div class="kakao-qr"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsAQAAAABRBrPYAAADaklEQVR42u2aP27jRhTGf49DgKpMlVssQqZKFcDldtSRfAPRN/ARcogcQOpc+gIBKGCBbBdxK9Eg+aUYKms7CeKI5KxlaBoRo4cZzpv37/seTbxi1BGvGhexi9hFbC4x82NZm1lMBGxLoBvmy9nfrfM/d+emXknSBpxakFlJbZb7+Tbou30hAXDlnJteT38E5/56/DD3nZrZCtImpqWnKEmrrALMokk3VfkuY4hrOzP/mG3zia33DBWiHMBpc7uC7BBm06+f32UyshNcxodeOkt8qC12lvv5PsQRXFi9PUywWgzgXTjFNQl0Ue/d+bfGz69DXL1W5+X1Ps/7scdJR2yT6ek/l9ryDRW0sLXlUMT2UJTQmFkEtyMLWtvAzagj5MGtFwlI96mklh4opAqSAxbeepMTV6uCx17BD6S7JZ3FYENiSarG1EM9GzKyzfUzewP4+AQknYefPhzB3RDwT7depE26T9UCPcC6ImmhN5WsQ1nv2eFTBNTZzmIn/ShJuzyrY0CmcVCx2i7Cn7RZNcsA0bIl0SGV9uAkwAY0D6RzRUtHw/31syrJVeAOYPtxJ20mvYX77PDp7+XoDElc+CTu2i6muUpKyKqkWaCe2zKEvVWP2k+y2hC7H8dmwFflLINC2mUVruWnHmCXQ3IA1gHYPD59eby/+3k5mdcvxr1b97L2sF/5ZW7rjRHbVZ3tLGlsUcHVQ11mdVKbJqabnoK7F15vf0RPWCkLkoyK/usonIWqQpIqp5bfpbIoPbsinZTr86MDOs8w3sweuL4LPvW635O2PmWxlnyNJEnl+pzw6ecXPjvNpnch8ILItEm1y+lipE1txzCoUziu/42MJlktf8HV3ASwXlFsgCO7spaGMwWt8N/ELTyjm5wkUUiSqkQ6WCi66Yg7Zy5XvqvY1ceJ6CYzs6VVncX0bG1V59AtUIQvVcc1RsPqLRyzPfRPa0vU+r5zts1xB9CpNdL1P3tU+b6sd2hlqsW35NJ9VjVmZhqA/Wmbdv+iw/PV21WATTtLWnoKbeqcRPqGGc/GTyftKta5a8EiblfpNqcbaPeScK2lgPbWjQo18TeaDlxLTB9ttwXQJIfF6WHwBK8fv9rDeygJ/kvMzAffzhIpgvWmLlSRHEwayakex4d3VnHZ5VvQi9hF7M2L/QlKLrxiYUh3lAAAAABJRU5ErkJggg==" alt="카카오톡 채널 QR" width="84" height="84">QR코드를 스캔하시면<br>바로 연결됩니다.</div>
         </div>
-      </div>
     </section>
     <footer class="footer">우미건설 피플팀<br>본 링크는 수신자 본인만 사용해 주세요.</footer>
   </main>
@@ -123,9 +123,9 @@
       return res.json();
     }
     function errorText(code) {
-      return code === 'process_closed' ? '입사 일정 확인이 이미 마무리되어 더 이상 회신을 받지 않습니다. 변경이 필요하면 피플팀에 알려 주세요.'
-        : code === 'token_expired' || code === 'deadline_expired' ? '회신 기간이 종료되었습니다. 피플팀에 문의해 주세요.'
-        : '유효하지 않은 링크입니다.';
+      return code === 'process_closed' ? '입사 일정 확인이 이미 마무리되어 더 이상 회신을 받지 않습니다. 변경이 필요하면 카카오톡 채널로 문의해 주세요.'
+        : code === 'token_expired' || code === 'deadline_expired' ? '회신 기간이 종료되었습니다. 카카오톡 채널로 문의해 주세요.'
+        : '유효하지 않은 링크입니다. 카카오톡 채널로 문의해 주세요.';
     }
     unavailable.addEventListener('change', () => {
       note.classList.toggle('on', unavailable.checked);
