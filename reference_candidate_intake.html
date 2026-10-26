@@ -156,11 +156,16 @@
       <div class="intro-panel">
         <h1 id="candidateFormTitle" tabindex="-1"><span class="cand-name">OOO</span> 님, 추천인을 등록해 주세요</h1>
         <p>채용 절차의 일환으로 레퍼런스 체크를 진행합니다. 함께 일했던 경험을 잘 이야기해 주실 수 있는 분 <b>3명</b>을 등록해 주세요.</p>
-        <p class="muted-line">등록하신 분들께는 별도의 이메일로 짧은 설문 링크가 발송됩니다. 응답 내용은 채용 참고용으로만 사용되며, 등록 후에는 담당 채용 담당자를 통해서만 변경할 수 있습니다.</p>
+        <p class="muted-line">제출 완료 후에도 이 링크에서 추천인 수정 요청을 할 수 있습니다. 수정은 채용 담당자가 변경 전·후 내용을 확인하고 승인해야 반영됩니다. 승인 후 변경된 추천인에게만 새 설문을 발송하고 이전 링크를 폐기합니다. 응답 완료 추천인은 수정할 수 없습니다.</p>
       </div>
 
       <form id="candidateForm" aria-labelledby="candidateFormTitle" novalidate>
+        <p id="changeStatus" role="status" hidden style="padding:12px;background:#fff5dc;border-radius:8px;font-weight:600"></p>
         <div id="refereeList"></div>
+        <div id="changeReasonRoot" class="q-card" hidden>
+          <label for="changeReason">추천인 수정 사유 <span class="req-mark">*</span></label>
+          <textarea id="changeReason" rows="3" maxlength="500" style="width:100%;box-sizing:border-box" placeholder="수정이 필요한 이유를 입력해 주세요."></textarea>
+        </div>
 
         <div id="formMessage" class="form-message" role="alert" aria-live="assertive" aria-atomic="true"></div>
         <div class="actions">
@@ -171,8 +176,9 @@
 
     <div id="completePanel" role="status" aria-live="polite" aria-atomic="true" tabindex="-1">
       <div class="q-card">
-        <h2>등록이 완료되었습니다</h2>
+        <h2 id="completeTitle">등록이 완료되었습니다</h2>
         <p id="completeMessage">등록해 주신 추천인분들께 설문 링크를 발송했습니다. 감사합니다.</p>
+        <button type="button" class="btn" id="editRefereesBtn">제출한 추천인 확인·수정</button>
       </div>
     </div>
   </div>
@@ -205,6 +211,14 @@
     let candidateToken = '';
     let previewMode = false;
     let refereeSeq = 0;
+    let editMode = false;
+    let refereeRevision = '';
+    let registeredReferees = [];
+
+    document.getElementById('editRefereesBtn').addEventListener('click', () => {
+      showPanel('loadingPanel');
+      verifyTokenAndInit();
+    });
 
     function refereeCardHtml(index) {
       const options = RELATION_OPTIONS.map(v => `<option value="${v}">${v}</option>`).join('');
@@ -349,11 +363,43 @@
         }
         document.querySelectorAll('.cand-name').forEach(el => { el.textContent = data.candName || 'OOO'; });
         document.title = `${data.candName || 'OOO'} 님 추천인 등록 · 우미건설`;
-        if (data.alreadySubmitted) {
-          showError('이미 등록을 완료하셨습니다', '추천인 등록은 1회만 가능합니다. 변경이 필요하면 카카오톡 채널로 문의해 주세요.');
+        editMode = !!data.alreadySubmitted;
+        refereeRevision = data.refereeRevision || '';
+        registeredReferees = Array.isArray(data.referees) ? data.referees : [];
+        if (editMode && registeredReferees.length !== REQUIRED_REFEREES) {
+          showError('등록 정보를 확인해 주세요', '추천인 정보를 확인하지 못했습니다. 채용 담당자에게 문의해 주세요.');
           return;
         }
         renderRefereeCards();
+        if (editMode) {
+          document.getElementById('candidateFormTitle').textContent = `${data.candName || 'OOO'} 님, 제출한 추천인을 확인·수정해 주세요`;
+          document.querySelectorAll('[data-referee-card]').forEach((card, index) => {
+            const referee = registeredReferees[index];
+            card.querySelectorAll('[data-field]').forEach(input => {
+              const value = referee[input.dataset.field] || '';
+              if (input.tagName === 'SELECT' && value && ![...input.options].some(o => o.value === value)) {
+                input.add(new Option(value, value));
+              }
+              input.value = value;
+              input.disabled = !!referee.locked;
+            });
+            const status = document.createElement('span');
+            status.textContent = referee.locked ? '응답 완료 · 수정 불가' : data.pendingChange ? '승인 대기 · 수정 잠금' : '응답 전 · 수정 가능';
+            status.style.cssText = 'font-size:12px;margin-left:auto';
+            card.querySelector('.referee-head').appendChild(status);
+          });
+        }
+        const allLocked = editMode && registeredReferees.every(r => r.locked);
+        document.getElementById('changeReasonRoot').hidden = !editMode || !!data.pendingChange;
+        document.getElementById('changeReason').value = '';
+        document.getElementById('changeReason').disabled = !!data.pendingChange;
+        document.getElementById('submitBtn').disabled = allLocked || !!data.pendingChange;
+        document.getElementById('submitBtn').textContent = editMode ? '추천인 수정 승인 요청' : '추천인 등록 완료';
+        if(data.pendingChange) document.querySelectorAll('[data-referee-card] input, [data-referee-card] select').forEach(input => { input.disabled = true; });
+        document.getElementById('changeStatus').hidden = !data.pendingChange;
+        document.getElementById('changeStatus').textContent = data.pendingChange ? '수정 요청이 접수되어 담당자 승인 대기 중입니다. 승인 전까지 기존 추천인과 설문 링크가 유지됩니다. 추가 수정 요청은 처리 후 가능합니다.' : '';
+        document.getElementById('formMessage').textContent = allLocked ? '모든 추천인이 응답을 완료했습니다. 수정이 필요하면 채용 담당자에게 문의해 주세요.'
+          : data.lastChangeStatus === 'REJECTED' ? '이전 수정 요청이 반려되었습니다. 자세한 내용은 채용 담당자에게 문의해 주세요.' : '';
         showPanel('formRoot');
       } catch (err) {
         console.error(err);
@@ -366,6 +412,9 @@
       event.preventDefault();
       const referees = collectReferees();
       if (!referees.length || !validateReferees(referees)) return;
+      const changeReason = document.getElementById('changeReason').value.trim();
+      if(editMode && !changeReason) { document.getElementById('formMessage').textContent = '수정 사유를 입력해 주세요.'; document.getElementById('changeReason').focus(); return; }
+      if (editMode && !window.confirm('담당자에게 추천인 수정 승인을 요청할까요? 승인 전에는 기존 추천인 정보가 유지됩니다.')) return;
 
       if (previewMode) {
         showPanel('completePanel');
@@ -374,7 +423,8 @@
       }
 
       const submitBtn = document.getElementById('submitBtn');
-      event.currentTarget.setAttribute('aria-busy', 'true');
+      const form = event.currentTarget;
+      form.setAttribute('aria-busy', 'true');
       submitBtn.disabled = true;
       submitBtn.textContent = '등록 중...';
 
@@ -382,24 +432,40 @@
         const res = await fetch(SCRIPT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'submitReferenceCandidateReferees', token: candidateToken, referees })
+          body: JSON.stringify({ action: 'submitReferenceCandidateReferees', token: candidateToken,
+            edit: editMode, refereeRevision, changeReason,
+            referees: referees.map((ref, index) => ({ ...ref, id: registeredReferees[index]?.id || '' })) })
         });
         const data = await res.json();
         if (!data.ok) {
           if (data.error === 'process_closed') {
             document.getElementById('formMessage').textContent = '해당 채용 절차가 마감되어 더 이상 응답을 받지 않습니다. 참여해 주셔서 감사합니다.';
-          } else if (data.error === 'already_submitted') {
-            document.getElementById('formMessage').textContent = '이미 추천인 등록이 완료되었습니다. 다시 제출할 수 없습니다.';
+          } else if (['already_submitted', 'referee_conflict', 'referee_response_locked'].includes(data.error)) {
+            document.getElementById('formMessage').textContent = '다른 변경 또는 추천인 응답이 접수되었습니다. 페이지를 새로고침한 뒤 다시 확인해 주세요.';
+          } else if (data.error === 'duplicate_referee_email') {
+            document.getElementById('formMessage').textContent = '추천인 이메일이 중복되지 않도록 입력해 주세요.';
+          } else if (data.error === 'referee_change_pending') {
+            document.getElementById('formMessage').textContent = '이미 담당자 승인 대기 중인 요청이 있습니다. 새로고침하여 처리 상태를 확인해 주세요.';
+          } else if (data.error === 'referee_change_reason_required') {
+            document.getElementById('formMessage').textContent = '수정 사유를 1~500자로 입력해 주세요.';
+          } else if (data.error === 'referee_history_full' || data.error === 'referee_state_invalid') {
+            document.getElementById('formMessage').textContent = '온라인 수정 요청을 접수하지 못했습니다. 채용 담당자에게 문의해 주세요.';
           } else if (data.error === 'token_expired') {
             document.getElementById('formMessage').textContent = '링크가 만료되었습니다. 담당자에게 새 링크 발송을 요청해 주세요.';
           } else {
             document.getElementById('formMessage').textContent = '등록 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.';
           }
-          event.currentTarget.removeAttribute('aria-busy');
+          form.removeAttribute('aria-busy');
           submitBtn.disabled = false;
-          submitBtn.textContent = '추천인 등록 완료';
+          submitBtn.textContent = editMode ? '추천인 수정 승인 요청' : '추천인 등록 완료';
           return;
         }
+        form.removeAttribute('aria-busy');
+        document.getElementById('completeTitle').textContent = data.pendingApproval ? '수정 승인 요청이 접수되었습니다' : editMode ? '확인이 완료되었습니다' : '등록이 완료되었습니다';
+        document.getElementById('completeMessage').textContent = data.pendingApproval
+          ? '추천인 수정 요청이 접수되었습니다. 담당자가 확인·승인한 뒤 반영됩니다. 아직 추천인 정보는 바뀌지 않았고 새 설문도 발송되지 않았습니다.' : editMode
+          ? (Number(data.changedCount) ? '수정 내용을 저장하고 변경된 추천인에게 새 설문 링크를 발송했습니다.' : '변경된 추천인 정보가 없습니다. 메일을 다시 발송하지 않았습니다.')
+          : '등록해 주신 추천인분들께 설문 링크를 발송했습니다. 감사합니다.';
         if (Number(data.mailFailed) > 0) {
           document.getElementById('completeMessage').textContent = '추천인 등록이 완료되었습니다. 일부 추천인에게 안내 메일이 발송되지 않아, 담당자가 확인 후 다시 보내드리겠습니다.';
         }
@@ -408,9 +474,9 @@
       } catch (err) {
         console.error(err);
         document.getElementById('formMessage').textContent = '등록 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
-        event.currentTarget.removeAttribute('aria-busy');
+        form.removeAttribute('aria-busy');
         submitBtn.disabled = false;
-        submitBtn.textContent = '추천인 등록 완료';
+        submitBtn.textContent = editMode ? '추천인 수정 승인 요청' : '추천인 등록 완료';
       }
     });
   </script>
