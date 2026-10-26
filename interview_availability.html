@@ -103,6 +103,7 @@
     // 최종 확인 면접관 확정 화면: 고른 시각(날짜|HH, 1시간 단위). 제출할 때 30분 칸 두 개로 바꿔 보낸다.
     let leadMode = false;
     const leadSelected = new Set();
+    const leadAllowed = new Set();
     const LEAD_HOURS = { AM:['09','10','11'], PM:['13','14','15','16','17'] };
 
     function showError(message) {
@@ -277,8 +278,18 @@
       const grid = document.getElementById('options');
       grid.classList.add('panel-options');
       const members = (peers || []).filter(peer => peer.role !== 'LEAD' && (peer.status === 'RESPONDED' || peer.status === 'UNAVAILABLE'));
+      leadAllowed.clear();
+      const offered = options.map(option => {
+        const slots = new Set(option.times || (option.periods || []).flatMap(period => LEAD_HOURS[period].flatMap(hour => [hour + ':00', hour + ':30'])));
+        const periods = ['AM','PM'].filter(period => LEAD_HOURS[period].some(hour => slots.has(hour + ':00') && slots.has(hour + ':30')));
+        periods.forEach(period => LEAD_HOURS[period].forEach(hour => {
+          if(slots.has(hour + ':00') && slots.has(hour + ':30')) leadAllowed.add(`${option.date}|${hour}`);
+        }));
+        return {...option, periods};
+      }).filter(option => option.periods.length);
+      [...leadSelected].forEach(value => { if(!leadAllowed.has(value)) leadSelected.delete(value); });
       document.getElementById('cal-range').innerHTML = '<p class="lead-hint">시작 시각을 누르면 그 시간대 끝까지 선택됩니다. 선택된 시각을 다시 누르면 그 시각부터 해제되어 끝 시각을 정할 수 있습니다.</p>';
-      grid.innerHTML = options.map(option => `<section class="lead-day"><h3>${dateLabel(option.date)}</h3>${['AM','PM'].filter(period => (option.periods || []).includes(period)).map(period => {
+      grid.innerHTML = offered.length ? offered.map(option => `<section class="lead-day"><h3>${dateLabel(option.date)}</h3>${['AM','PM'].filter(period => (option.periods || []).includes(period)).map(period => {
         const ok = peerPeriodNames(members, option.date, period);
         const no = members.filter(peer => !ok.includes(peer.name || '면접관')).map(peer => peer.name || '면접관');
         const all = members.length > 0 && !no.length;
@@ -286,18 +297,21 @@
           ? `<span class="lead-avail">${ok.length ? `가능 <b>${escHtml(ok.join(', '))}</b>` : ''}${ok.length && no.length ? ' · ' : ''}${no.length ? `<span class="no">불가 ${escHtml(no.join(', '))}</span>` : ''}</span>`
           : '';
         return `<div class="lead-period"><div class="lead-period-head"><h4>${period === 'AM' ? '오전' : '오후'}</h4>${all ? '<span class="lead-all">전원 가능</span>' : ''}${avail}</div>
-          <div class="lead-hours">${LEAD_HOURS[period].map(hour => {
+          <div class="lead-hours">${LEAD_HOURS[period].filter(hour => leadAllowed.has(`${option.date}|${hour}`)).map(hour => {
             const key = `${option.date}|${hour}`;
             return `<button type="button" class="lead-hour" data-date="${option.date}" data-period="${period}" data-hour="${hour}" aria-pressed="${leadSelected.has(key)}" aria-label="${escHtml(`${dateLabel(option.date)} ${hour}:00`)}">${hour}:00</button>`;
           }).join('')}</div></div>`;
-      }).join('')}</section>`).join('');
+      }).join('')}</section>`).join('') : '<p role="status">현재 선택할 수 있는 공통 시간이 없습니다. 담당자에게 후보일정 조정을 요청해 주세요.</p>';
     }
     function toggleLeadHour(date, period, hour) {
       const hours = LEAD_HOURS[period];
       const from = hours.indexOf(hour);
-      if(from < 0) return;
+      if(from < 0 || !leadAllowed.has(`${date}|${hour}`)) return;
       const selecting = !leadSelected.has(`${date}|${hour}`);
-      hours.slice(from).forEach(h => { if(selecting) leadSelected.add(`${date}|${h}`); else leadSelected.delete(`${date}|${h}`); });
+      for(const h of hours.slice(from)) {
+        if(!leadAllowed.has(`${date}|${h}`)) break;
+        if(selecting) leadSelected.add(`${date}|${h}`); else leadSelected.delete(`${date}|${h}`);
+      }
       document.querySelectorAll(`.lead-hour[data-date="${date}"][data-period="${period}"]`).forEach(btn => btn.setAttribute('aria-pressed', String(leadSelected.has(`${date}|${btn.dataset.hour}`))));
     }
     document.getElementById('options').addEventListener('click', event => {
@@ -339,7 +353,7 @@
           // 예전 방식(먼저 고른 사람의 시각만 받은 면접관)이면 시각 칸으로, 새 방식 면접관은 오전·오후 달력으로 묻는다.
           const fullCount = { AM:6, PM:10 };
           const restricted = (data.options || []).some(o => Array.isArray(o.times) && o.times.length < (o.periods || []).reduce((n, p) => n + (fullCount[p] || 0), 0));
-          leadMode = data.panelRole === 'LEAD' && !restricted;
+          leadMode = data.panelRole === 'LEAD';
           const memberCalendar = data.panelRole === 'MEMBER' && !restricted;
           if(leadMode) {
             document.getElementById('page-title').textContent = '면접 시간 선택';
@@ -432,7 +446,7 @@
         button.disabled=false; button.textContent=leadMode ? '면접 시간 제출' : responseBy === 'headhunter' ? '후보자 가능 일정 제출' : '가능 일정 제출';
         showComplete(leadMode && !unavailable.checked ? '선택하신 시간을 전달했습니다' : '응답이 저장되었습니다', selections, unavailable.checked, note.value.trim());
       } catch(err) {
-        formMessage.textContent=err.message === 'already_submitted' ? (audience === 'panel' ? '이미 제출하셨습니다. 수정이 필요하시면 피플팀 담당자에게 문의 바랍니다.' : '이미 제출하셨습니다. 변경이 필요하시면 카카오톡 채널로 문의해 주세요.') : err.message === 'process_closed' ? '해당 채용 절차가 마감되어 더 이상 응답을 받지 않습니다. 참여해 주셔서 감사합니다.' : err.message === 'token_expired' ? '응답 기간이 종료되었습니다.' : '응답을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+        formMessage.textContent=err.message === 'already_submitted' ? (audience === 'panel' ? '이미 제출하셨습니다. 수정이 필요하시면 피플팀 담당자에게 문의 바랍니다.' : '이미 제출하셨습니다. 변경이 필요하시면 카카오톡 채널로 문의해 주세요.') : err.message === 'process_closed' ? '해당 채용 절차가 마감되어 더 이상 응답을 받지 않습니다. 참여해 주셔서 감사합니다.' : err.message === 'token_expired' ? '응답 기간이 종료되었습니다.' : err.message === 'invalid_selection' ? '선택 가능한 일정이 변경되었습니다. 페이지를 새로고침한 뒤 다시 선택해 주세요.' : '응답을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.';
         form.removeAttribute('aria-busy');
         button.disabled=false; button.textContent=leadMode ? '면접 시간 제출' : responseBy === 'headhunter' ? '후보자 가능 일정 제출' : '가능 일정 제출';
       }
